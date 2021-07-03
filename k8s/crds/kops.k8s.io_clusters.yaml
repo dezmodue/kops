@@ -234,6 +234,20 @@ spec:
                     description: Version is the container image tag used.
                     type: string
                 type: object
+              bastion:
+                description: Authentication field controls how the cluster is configured
+                  for authentication
+                properties:
+                  loadBalancer:
+                    description: LoadBalancer is the configuration for the bastion
+                      ELB
+                    properties:
+                      type:
+                        description: Type of load balancer to create may Public or
+                          Internal.
+                        type: string
+                    type: object
+                type: object
               certManager:
                 description: CertManager determines the metrics server configuration.
                 properties:

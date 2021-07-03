@@ -64,6 +64,7 @@ func (b *APILoadBalancerBuilder) Build(c *fi.ModelBuilderContext) error {
 		return fmt.Errorf("unhandled LoadBalancer type %q", lbSpec.Type)
 	}
 
+	// Do we copy from here how to find the subnets for bastion?
 	var elbSubnets []*awstasks.Subnet
 	var nlbSubnetMappings []*awstasks.SubnetMapping
 	if len(lbSpec.Subnets) != 0 {

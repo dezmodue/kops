@@ -174,6 +174,8 @@ type ClusterSpec struct {
 	// API field controls how the API is exposed outside the cluster
 	API *AccessSpec `json:"api,omitempty"`
 	// Authentication field controls how the cluster is configured for authentication
+	Bastion *BastionAccessSpec `json:"bastion,omitempty"`
+	// Authentication field controls how the cluster is configured for authentication
 	Authentication *AuthenticationSpec `json:"authentication,omitempty"`
 	// Authorization field controls how the cluster is configured for authorization
 	Authorization *AuthorizationSpec `json:"authorization,omitempty"`
@@ -389,6 +391,12 @@ type AccessSpec struct {
 	LoadBalancer *LoadBalancerAccessSpec `json:"loadBalancer,omitempty"`
 }
 
+// BastionAccessSpec provides configuration details related to bastion ELB access
+type BastionAccessSpec struct {
+	// LoadBalancer is the configuration for the bastion ELB
+	LoadBalancer *BastionLoadBalancerAccessSpec `json:"loadBalancer,omitempty"`
+}
+
 func (s *AccessSpec) IsEmpty() bool {
 	return s.DNS == nil && s.LoadBalancer == nil
 }
@@ -449,6 +457,12 @@ type LoadBalancerAccessSpec struct {
 	CrossZoneLoadBalancing *bool `json:"crossZoneLoadBalancing,omitempty"`
 	// Subnets allows you to specify the subnets that must be used for the load balancer
 	Subnets []LoadBalancerSubnetSpec `json:"subnets,omitempty"`
+}
+
+// BastionLoadBalancerAccessSpec provides configuration details related to API LoadBalancer and its access
+type BastionLoadBalancerAccessSpec struct {
+	// Type of load balancer to create may Public or Internal.
+	Type LoadBalancerType `json:"type,omitempty"`
 }
 
 // KubeDNSConfig defines the kube dns configuration

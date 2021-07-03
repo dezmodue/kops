@@ -17,6 +17,7 @@ limitations under the License.
 package awsmodel
 
 import (
+	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -46,6 +47,20 @@ type BastionModelBuilder struct {
 var _ fi.ModelBuilder = &BastionModelBuilder{}
 
 func (b *BastionModelBuilder) Build(c *fi.ModelBuilderContext) error {
+	elbSpec := b.Cluster.Spec.Bastion.LoadBalancer
+	if elbSpec == nil {
+		// Skipping Bastion ELB creation; not requested in Spec
+		return nil
+	}
+
+	switch elbSpec.Type {
+	case kops.LoadBalancerTypeInternal, kops.LoadBalancerTypePublic:
+	// OK
+
+	default:
+		return fmt.Errorf("unhandled LoadBalancer type %q", elbSpec.Type)
+	}
+
 	var bastionInstanceGroups []*kops.InstanceGroup
 	for _, ig := range b.InstanceGroups {
 		if ig.Spec.Role == kops.InstanceGroupRoleBastion {
@@ -191,6 +206,7 @@ func (b *BastionModelBuilder) Build(c *fi.ModelBuilderContext) error {
 			Protocol:      fi.String("tcp"),
 			FromPort:      fi.Int64(22),
 			ToPort:        fi.Int64(22),
+			CIDR:          fi.String(sshAccess),
 		}
 		if utils.IsIPv6CIDR(sshAccess) {
 			t.IPv6CIDR = fi.String(sshAccess)
@@ -282,6 +298,15 @@ func (b *BastionModelBuilder) Build(c *fi.ModelBuilderContext) error {
 			}
 		}
 
+		// Private VS Public
+		switch elbSpec.Type {
+		case kops.LoadBalancerTypeInternal:
+			elb.Scheme = fi.String("internal")
+		case kops.LoadBalancerTypePublic:
+			elb.Scheme = nil
+		default:
+			return fmt.Errorf("unknown load balancer Type: %q", elbSpec.Type)
+		}
 		c.AddTask(elb)
 	}
 
