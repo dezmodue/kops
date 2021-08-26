@@ -65,10 +65,14 @@ func (b *KubeProxyOptionsBuilder) BuildOptions(o interface{}) error {
 		// CIDR range that allows us to distinguish them from other IPs.  Omitting the ClusterCIDR
 		// causes kube-proxy never to SNAT when proxying clusterIPs, which is the behavior
 		// we want for pods.
-		// If we're not using the AmazonVPC networking, and the KubeControllerMananger has
+		// If we are using the CNI networking, omit the ClusterCIDR and leave it to the user
+		// to set it if needed
+		// If we're not using the AmazonVPC or CNI networking, and the KubeControllerManager has
 		// a ClusterCIDR, use that because most networking plug ins draw pod IPs from this range.
-		if clusterSpec.Networking.AmazonVPC == nil && clusterSpec.KubeControllerManager != nil {
-			config.ClusterCIDR = clusterSpec.KubeControllerManager.ClusterCIDR
+		if clusterSpec.Networking.CNI == nil {
+			if clusterSpec.Networking.AmazonVPC == nil && clusterSpec.KubeControllerManager != nil {
+				config.ClusterCIDR = clusterSpec.KubeControllerManager.ClusterCIDR
+			}
 		}
 	}
 
