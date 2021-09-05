@@ -69,6 +69,9 @@ func (b *KubeProxyOptionsBuilder) BuildOptions(o interface{}) error {
 		// a ClusterCIDR, use that because most networking plug ins draw pod IPs from this range.
 		if clusterSpec.Networking.AmazonVPC == nil && clusterSpec.KubeControllerManager != nil {
 			config.ClusterCIDR = clusterSpec.KubeControllerManager.ClusterCIDR
+		} else if config.ClusterCIDR == "omit" {
+			// The user can explicitly omit the ClusterCIDR by setting spec.kubeProxy.clusterCIDR: "omit"
+			config.ClusterCIDR = ""
 		}
 	}
 
