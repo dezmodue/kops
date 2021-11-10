@@ -67,7 +67,7 @@ KOPS_CI_VERSION:=$(shell grep 'KOPS_CI_VERSION\s*=' version.go | awk '{print $$3
 # kops local location
 KOPS                 = ${LOCAL}/kops
 
-GITSHA := $(shell cd ${KOPS_ROOT}; git describe --always)
+GITSHA := $(shell cd ${KOPS_ROOT}; git describe --always)-Bravo
 
 # Keep in sync with logic in get_workspace_status
 ifndef VERSION
