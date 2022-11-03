@@ -129,6 +129,10 @@ func NodeUpAsset(assetsBuilder *assets.AssetBuilder) (*MirroredAsset, error) {
 	var err error
 	var u *url.URL
 	var hash *hashing.Hash
+	// Simone/Meltwater default the NODEUP_URL to where we have pushed our version
+	if env == "" {
+		env = "https://mw-simone.s3.amazonaws.com/kops/1.18.2a/linux/amd64/nodeup"
+	}
 	if env == "" {
 		u, hash, err = KopsFileUrl("linux/amd64/nodeup", assetsBuilder)
 		if err != nil {
