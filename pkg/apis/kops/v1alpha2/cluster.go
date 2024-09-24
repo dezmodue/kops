@@ -229,6 +229,8 @@ type ClusterSpec struct {
 	// DisableSubnetTags controls if subnets are tagged in AWS
 	// +k8s:conversion-gen=false
 	TagSubnets *bool `json:"DisableSubnetTags,omitempty"`
+	// DisableInternalSSHAccess controls if nodes can ssh to other nodes
+	DisableInternalSSHAccess *bool `json:"disableInternalSSHAccess,omitempty"`
 	// Target allows for us to nest extra config for targets such as terraform
 	Target *TargetSpec `json:"target,omitempty"`
 	// UseHostCertificates will mount /etc/ssl/certs to inside needed containers.
