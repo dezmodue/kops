@@ -58,6 +58,7 @@ func (b *FirewallModelBuilder) Build(c *fi.CloudupModelBuilderContext) error {
 	// * If users are running an overlay, we punch a hole in it anyway
 	// b.applyNodeToMasterAllowSpecificPorts(c)
 	b.applyNodeToMasterBlockSpecificPorts(c, nodeGroups, masterGroups)
+	b.applyNodeToNodeBlockSpecificPorts(c, nodeGroups)
 
 	return nil
 }
@@ -96,22 +97,103 @@ func (b *FirewallModelBuilder) buildNodeRules(c *fi.CloudupModelBuilderContext) 
 			AddDirectionalGroupRule(c, t)
 		}
 
-		// Nodes can talk to nodes
-		for _, dest := range nodeGroups {
-			suffix := JoinSuffixes(src, dest)
+		// // Nodes can talk to nodes
+		// for _, dest := range nodeGroups {
+		// 	suffix := JoinSuffixes(src, dest)
 
-			t := &awstasks.SecurityGroupRule{
-				Name:          fi.PtrTo("all-node-to-node" + suffix),
-				Lifecycle:     b.Lifecycle,
-				SecurityGroup: dest.Task,
-				SourceGroup:   src.Task,
-			}
-			AddDirectionalGroupRule(c, t)
-		}
+		// 	t := &awstasks.SecurityGroupRule{
+		// 		Name:          fi.PtrTo("all-node-to-node" + suffix),
+		// 		Lifecycle:     b.Lifecycle,
+		// 		SecurityGroup: dest.Task,
+		// 		SourceGroup:   src.Task,
+		// 	}
+		// 	AddDirectionalGroupRule(c, t)
+		// }
 
 	}
 
 	return nodeGroups, nil
+}
+
+func (b *FirewallModelBuilder) applyNodeToNodeBlockSpecificPorts(c *fi.CloudupModelBuilderContext, nodeGroups []SecurityGroupInfo) {
+	type portRange struct {
+		From int
+		To   int
+	}
+
+	// TODO: Make less hacky
+	// TODO: Fix management - we need a wildcard matcher now
+	tcpBlocked := make(map[int]bool)
+
+	udpRanges := []portRange{{From: 1, To: 65535}}
+	protocols := []Protocol{}
+
+	if b.Cluster.Spec.DisableInternalSSHAccess != nil {
+		// Block ssh access from nodes in the cluster
+		tcpBlocked[22] = fi.ValueOf(b.Cluster.Spec.DisableInternalSSHAccess)
+	}
+
+	tcpRanges := []portRange{
+		{From: 1, To: 0},
+	}
+	for port := 1; port < 65536; port++ {
+		previous := &tcpRanges[len(tcpRanges)-1]
+		if !tcpBlocked[port] {
+			if (previous.To + 1) == port {
+				previous.To = port
+			} else {
+				tcpRanges = append(tcpRanges, portRange{From: port, To: port})
+			}
+		}
+	}
+
+	for _, nodeGroup := range nodeGroups {
+		suffix := JoinSuffixes(nodeGroup, nodeGroup)
+
+		for _, r := range udpRanges {
+			t := &awstasks.SecurityGroupRule{
+				Name:          fi.PtrTo(fmt.Sprintf("node-to-node-udp-%d-%d%s", r.From, r.To, suffix)),
+				Lifecycle:     b.Lifecycle,
+				SecurityGroup: nodeGroup.Task,
+				SourceGroup:   nodeGroup.Task,
+				FromPort:      fi.PtrTo(int32(r.From)),
+				ToPort:        fi.PtrTo(int32(r.To)),
+				Protocol:      fi.PtrTo("udp"),
+			}
+			AddDirectionalGroupRule(c, t)
+		}
+		for _, r := range tcpRanges {
+			t := &awstasks.SecurityGroupRule{
+				Name:          fi.PtrTo(fmt.Sprintf("node-to-node-tcp-%d-%d%s", r.From, r.To, suffix)),
+				Lifecycle:     b.Lifecycle,
+				SecurityGroup: nodeGroup.Task,
+				SourceGroup:   nodeGroup.Task,
+				FromPort:      fi.PtrTo(int32(r.From)),
+				ToPort:        fi.PtrTo(int32(r.To)),
+				Protocol:      fi.PtrTo("tcp"),
+			}
+			AddDirectionalGroupRule(c, t)
+		}
+		for _, protocol := range protocols {
+			awsName := strconv.Itoa(int(protocol))
+			name := awsName
+			switch protocol {
+			case ProtocolIPIP:
+				name = "ipip"
+			default:
+				klog.Warningf("unknown protocol %q - naming by number", awsName)
+			}
+
+			t := &awstasks.SecurityGroupRule{
+				Name:          fi.PtrTo(fmt.Sprintf("node-to-master-protocol-%s%s", name, suffix)),
+				Lifecycle:     b.Lifecycle,
+				SecurityGroup: nodeGroup.Task,
+				SourceGroup:   nodeGroup.Task,
+				Protocol:      fi.PtrTo(awsName),
+			}
+			AddDirectionalGroupRule(c, t)
+		}
+	}
 }
 
 func (b *FirewallModelBuilder) applyNodeToMasterBlockSpecificPorts(c *fi.CloudupModelBuilderContext, nodeGroups []SecurityGroupInfo, masterGroups []SecurityGroupInfo) {
@@ -134,6 +216,11 @@ func (b *FirewallModelBuilder) applyNodeToMasterBlockSpecificPorts(c *fi.Cloudup
 
 	udpRanges := []portRange{{From: 1, To: 65535}}
 	protocols := []Protocol{}
+
+	if b.Cluster.Spec.DisableInternalSSHAccess != nil {
+		// Block ssh access from nodes in the cluster
+		tcpBlocked[22] = fi.ValueOf(b.Cluster.Spec.DisableInternalSSHAccess)
+	}
 
 	if b.Cluster.Spec.Networking.Cilium != nil && b.Cluster.Spec.Networking.Cilium.EtcdManaged {
 		// Block the etcd peer port
@@ -233,6 +320,38 @@ func (b *FirewallModelBuilder) applyNodeToMasterBlockSpecificPorts(c *fi.Cloudup
 
 func (b *FirewallModelBuilder) buildMasterRules(c *fi.CloudupModelBuilderContext, nodeGroups []SecurityGroupInfo) ([]SecurityGroupInfo, error) {
 	masterGroups, err := b.GetSecurityGroups(kops.InstanceGroupRoleControlPlane)
+
+	type portRange struct {
+		From int
+		To   int
+	}
+
+	udpRanges := []portRange{{From: 1, To: 65535}}
+	// protocols := []Protocol{}
+
+	// TODO: Make less hacky
+	// TODO: Fix management - we need a wildcard matcher now
+	tcpBlocked := make(map[int]bool)
+
+	if b.Cluster.Spec.DisableInternalSSHAccess != nil {
+		// Block ssh access from nodes in the cluster
+		tcpBlocked[22] = fi.ValueOf(b.Cluster.Spec.DisableInternalSSHAccess)
+	}
+
+	tcpRanges := []portRange{
+		{From: 1, To: 0},
+	}
+	for port := 1; port < 65536; port++ {
+		previous := &tcpRanges[len(tcpRanges)-1]
+		if !tcpBlocked[port] {
+			if (previous.To + 1) == port {
+				previous.To = port
+			} else {
+				tcpRanges = append(tcpRanges, portRange{From: port, To: port})
+			}
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -264,31 +383,88 @@ func (b *FirewallModelBuilder) buildMasterRules(c *fi.CloudupModelBuilderContext
 			}
 			AddDirectionalGroupRule(c, t)
 		}
-
-		// Masters can talk to masters
-		for _, dest := range masterGroups {
-			suffix := JoinSuffixes(src, dest)
-
-			t := &awstasks.SecurityGroupRule{
-				Name:          fi.PtrTo("all-master-to-master" + suffix),
-				Lifecycle:     b.Lifecycle,
-				SecurityGroup: dest.Task,
-				SourceGroup:   src.Task,
+		if fi.ValueOf(b.Cluster.Spec.DisableInternalSSHAccess) {
+			for _, dest := range masterGroups {
+				suffix := JoinSuffixes(src, dest)
+				for _, r := range tcpRanges {
+					t := &awstasks.SecurityGroupRule{
+						Name:          fi.PtrTo(fmt.Sprintf("master-to-master-tcp-%d-%d%s", r.From, r.To, suffix)),
+						Lifecycle:     b.Lifecycle,
+						SecurityGroup: dest.Task,
+						SourceGroup:   src.Task,
+						FromPort:      fi.PtrTo(int32(r.From)),
+						ToPort:        fi.PtrTo(int32(r.To)),
+						Protocol:      fi.PtrTo("tcp"),
+					}
+					AddDirectionalGroupRule(c, t)
+				}
+				for _, r := range udpRanges {
+					t := &awstasks.SecurityGroupRule{
+						Name:          fi.PtrTo(fmt.Sprintf("master-to-master-udp-%d-%d%s", r.From, r.To, suffix)),
+						Lifecycle:     b.Lifecycle,
+						SecurityGroup: dest.Task,
+						SourceGroup:   src.Task,
+						FromPort:      fi.PtrTo(int32(r.From)),
+						ToPort:        fi.PtrTo(int32(r.To)),
+						Protocol:      fi.PtrTo("udp"),
+					}
+					AddDirectionalGroupRule(c, t)
+				}
 			}
-			AddDirectionalGroupRule(c, t)
-		}
 
-		// Masters can talk to nodes
-		for _, dest := range nodeGroups {
-			suffix := JoinSuffixes(src, dest)
-
-			t := &awstasks.SecurityGroupRule{
-				Name:          fi.PtrTo("all-master-to-node" + suffix),
-				Lifecycle:     b.Lifecycle,
-				SecurityGroup: dest.Task,
-				SourceGroup:   src.Task,
+			for _, dest := range nodeGroups {
+				suffix := JoinSuffixes(src, dest)
+				for _, r := range tcpRanges {
+					t := &awstasks.SecurityGroupRule{
+						Name:          fi.PtrTo(fmt.Sprintf("master-to-node-tcp-%d-%d%s", r.From, r.To, suffix)),
+						Lifecycle:     b.Lifecycle,
+						SecurityGroup: dest.Task,
+						SourceGroup:   src.Task,
+						FromPort:      fi.PtrTo(int32(r.From)),
+						ToPort:        fi.PtrTo(int32(r.To)),
+						Protocol:      fi.PtrTo("tcp"),
+					}
+					AddDirectionalGroupRule(c, t)
+				}
+				for _, r := range udpRanges {
+					t := &awstasks.SecurityGroupRule{
+						Name:          fi.PtrTo(fmt.Sprintf("master-to-master-udp-%d-%d%s", r.From, r.To, suffix)),
+						Lifecycle:     b.Lifecycle,
+						SecurityGroup: dest.Task,
+						SourceGroup:   src.Task,
+						FromPort:      fi.PtrTo(int32(r.From)),
+						ToPort:        fi.PtrTo(int32(r.To)),
+						Protocol:      fi.PtrTo("udp"),
+					}
+					AddDirectionalGroupRule(c, t)
+				}
 			}
-			AddDirectionalGroupRule(c, t)
+		} else {
+			// Masters can talk to masters
+			for _, dest := range masterGroups {
+				suffix := JoinSuffixes(src, dest)
+
+				t := &awstasks.SecurityGroupRule{
+					Name:          fi.PtrTo("all-master-to-master" + suffix),
+					Lifecycle:     b.Lifecycle,
+					SecurityGroup: dest.Task,
+					SourceGroup:   src.Task,
+				}
+				AddDirectionalGroupRule(c, t)
+			}
+
+			// Masters can talk to nodes
+			for _, dest := range nodeGroups {
+				suffix := JoinSuffixes(src, dest)
+
+				t := &awstasks.SecurityGroupRule{
+					Name:          fi.PtrTo("all-master-to-node" + suffix),
+					Lifecycle:     b.Lifecycle,
+					SecurityGroup: dest.Task,
+					SourceGroup:   src.Task,
+				}
+				AddDirectionalGroupRule(c, t)
+			}
 		}
 	}
 

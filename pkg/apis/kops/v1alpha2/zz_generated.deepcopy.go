@@ -1357,6 +1357,11 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.DisableInternalSSHAccess != nil {
+		in, out := &in.DisableInternalSSHAccess, &out.DisableInternalSSHAccess
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Target != nil {
 		in, out := &in.Target, &out.Target
 		*out = new(TargetSpec)

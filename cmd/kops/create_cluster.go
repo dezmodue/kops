@@ -172,6 +172,7 @@ func NewCmdCreateCluster(f *util.Factory, out io.Writer) *cobra.Command {
 	sshPublicKey := ""
 	associatePublicIP := false
 	encryptEtcdStorage := false
+	disableInternalSSHAccess := false
 
 	cmd := &cobra.Command{
 		Use:               "cluster [CLUSTER]",
@@ -189,6 +190,10 @@ func NewCmdCreateCluster(f *util.Factory, out io.Writer) *cobra.Command {
 
 			if cmd.Flag("encrypt-etcd-storage").Changed {
 				options.EncryptEtcdStorage = &encryptEtcdStorage
+			}
+
+			if cmd.Flag("disable-internal-ssh-access").Changed {
+				options.DisableInternalSSHAccess = &disableInternalSSHAccess
 			}
 
 			if sshPublicKey != "" {
@@ -304,7 +309,6 @@ func NewCmdCreateCluster(f *util.Factory, out io.Writer) *cobra.Command {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	})
 	cmd.Flags().BoolVar(&options.DisableSubnetTags, "disable-subnet-tags", options.DisableSubnetTags, "Disable automatic subnet tagging")
-
 	cmd.Flags().StringSliceVar(&options.EtcdClusters, "etcd-clusters", options.EtcdClusters, "Names of the etcd clusters: main, events")
 	cmd.RegisterFlagCompletionFunc("etcd-clusters", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{"main", "events"}, cobra.ShellCompDirectiveNoFileComp
@@ -329,6 +333,7 @@ func NewCmdCreateCluster(f *util.Factory, out io.Writer) *cobra.Command {
 	cmd.RegisterFlagCompletionFunc("ssh-access", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	})
+	cmd.Flags().BoolVar(&disableInternalSSHAccess, "disable-internal-ssh-access", false, "Remove SSH access from nodes. By default ssh access is allowed between nodes and masters.")
 
 	// TODO: Can we deprecate this flag - it is awkward?
 	cmd.Flags().BoolVar(&associatePublicIP, "associate-public-ip", false, "Specify --associate-public-ip=[true|false] to enable/disable association of public IP for control-plane ASG and nodes. Default is 'true'.")

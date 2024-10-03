@@ -82,6 +82,8 @@ type ClusterSpec struct {
 	ClusterDNSDomain string `json:"clusterDNSDomain,omitempty"`
 	// SSHAccess is a list of the CIDRs that can access SSH.
 	SSHAccess []string `json:"sshAccess,omitempty"`
+	// DisableInternalSSHAccess controls if nodes can ssh to other nodes
+	DisableInternalSSHAccess *bool `json:"disableInternalSSHAccess,omitempty"`
 	// NodePortAccess is a list of the CIDRs that can access the node ports range (30000-32767).
 	NodePortAccess []string `json:"nodePortAccess,omitempty"`
 	// SSHKeyName specifies a preexisting SSH key to use

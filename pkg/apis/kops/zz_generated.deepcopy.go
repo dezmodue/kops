@@ -1167,6 +1167,11 @@ func (in *ClusterSpec) DeepCopyInto(out *ClusterSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.DisableInternalSSHAccess != nil {
+		in, out := &in.DisableInternalSSHAccess, &out.DisableInternalSSHAccess
+		*out = new(bool)
+		**out = **in
+	}
 	if in.NodePortAccess != nil {
 		in, out := &in.NodePortAccess, &out.NodePortAccess
 		*out = make([]string, len(*in))
