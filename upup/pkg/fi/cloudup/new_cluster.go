@@ -125,6 +125,9 @@ type NewClusterOptions struct {
 	// EncryptEtcdStorage is whether to encrypt the etcd volumes.
 	EncryptEtcdStorage *bool
 
+	// DisableInternalSSHAccess disables node to node SSH access
+	DisableInternalSSHAccess *bool
+
 	// EtcdClusters contains the names of the etcd clusters.
 	EtcdClusters []string
 	// EtcdStorageType is the underlying cloud storage class of the etcd volumes.

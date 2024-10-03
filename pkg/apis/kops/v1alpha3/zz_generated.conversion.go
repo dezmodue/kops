@@ -2695,6 +2695,7 @@ func autoConvert_v1alpha3_ClusterSpec_To_kops_ClusterSpec(in *ClusterSpec, out *
 	}
 	out.ClusterDNSDomain = in.ClusterDNSDomain
 	out.SSHAccess = in.SSHAccess
+	out.DisableInternalSSHAccess = in.DisableInternalSSHAccess
 	out.NodePortAccess = in.NodePortAccess
 	out.SSHKeyName = in.SSHKeyName
 	out.UpdatePolicy = in.UpdatePolicy
@@ -3029,6 +3030,7 @@ func autoConvert_kops_ClusterSpec_To_v1alpha3_ClusterSpec(in *kops.ClusterSpec, 
 	}
 	out.ClusterDNSDomain = in.ClusterDNSDomain
 	out.SSHAccess = in.SSHAccess
+	out.DisableInternalSSHAccess = in.DisableInternalSSHAccess
 	out.NodePortAccess = in.NodePortAccess
 	out.SSHKeyName = in.SSHKeyName
 	out.UpdatePolicy = in.UpdatePolicy
