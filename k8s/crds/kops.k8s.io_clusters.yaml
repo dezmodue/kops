@@ -1007,6 +1007,10 @@ spec:
                     description: Version used to pick the containerd package.
                     type: string
                 type: object
+              disableInternalSSHAccess:
+                description: DisableInternalSSHAccess controls if nodes can ssh to
+                  other nodes
+                type: boolean
               dnsControllerGossipConfig:
                 description: DNSControllerGossipConfig for the cluster assuming the
                   use of gossip DNS
