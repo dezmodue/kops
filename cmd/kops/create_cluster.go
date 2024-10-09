@@ -333,7 +333,7 @@ func NewCmdCreateCluster(f *util.Factory, out io.Writer) *cobra.Command {
 	cmd.RegisterFlagCompletionFunc("ssh-access", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	})
-	cmd.Flags().BoolVar(&disableInternalSSHAccess, "disable-internal-ssh-access", false, "Remove SSH access from nodes. By default ssh access is allowed between nodes and masters.")
+	cmd.Flags().BoolVar(&disableInternalSSHAccess, "disable-internal-ssh-access", false, "Disallow SSH access between all cluster nodes. By default SSH access is allowed.")
 
 	// TODO: Can we deprecate this flag - it is awkward?
 	cmd.Flags().BoolVar(&associatePublicIP, "associate-public-ip", false, "Specify --associate-public-ip=[true|false] to enable/disable association of public IP for control-plane ASG and nodes. Default is 'true'.")
