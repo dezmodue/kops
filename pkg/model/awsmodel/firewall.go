@@ -58,7 +58,6 @@ func (b *FirewallModelBuilder) Build(c *fi.CloudupModelBuilderContext) error {
 	// * If users are running an overlay, we punch a hole in it anyway
 	// b.applyNodeToMasterAllowSpecificPorts(c)
 	b.applyNodeToMasterBlockSpecificPorts(c, nodeGroups, masterGroups)
-	b.applyNodeToNodeBlockSpecificPorts(c, nodeGroups)
 
 	return nil
 }
@@ -97,19 +96,22 @@ func (b *FirewallModelBuilder) buildNodeRules(c *fi.CloudupModelBuilderContext) 
 			AddDirectionalGroupRule(c, t)
 		}
 
-		// // Nodes can talk to nodes
-		// for _, dest := range nodeGroups {
-		// 	suffix := JoinSuffixes(src, dest)
+		if fi.ValueOf(b.Cluster.Spec.DisableInternalSSHAccess) {
+			b.applyNodeToNodeBlockSpecificPorts(c, nodeGroups)
+		} else {
+			// // Nodes can talk to nodes
+			for _, dest := range nodeGroups {
+				suffix := JoinSuffixes(src, dest)
 
-		// 	t := &awstasks.SecurityGroupRule{
-		// 		Name:          fi.PtrTo("all-node-to-node" + suffix),
-		// 		Lifecycle:     b.Lifecycle,
-		// 		SecurityGroup: dest.Task,
-		// 		SourceGroup:   src.Task,
-		// 	}
-		// 	AddDirectionalGroupRule(c, t)
-		// }
-
+				t := &awstasks.SecurityGroupRule{
+					Name:          fi.PtrTo("all-node-to-node" + suffix),
+					Lifecycle:     b.Lifecycle,
+					SecurityGroup: dest.Task,
+					SourceGroup:   src.Task,
+				}
+				AddDirectionalGroupRule(c, t)
+			}
+		}
 	}
 
 	return nodeGroups, nil

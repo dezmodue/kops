@@ -83,6 +83,7 @@ kops create cluster [CLUSTER] [flags]
       --control-plane-tenancy string            Tenancy of the control-plane group (AWS only): default or dedicated
       --control-plane-volume-size int32         Instance volume size (in GB) for control-plane nodes
       --control-plane-zones strings             Zones in which to run control-plane nodes. (must be an odd number)
+      --disable-internal-ssh-access             Disallow SSH access between all cluster nodes. By default SSH access is allowed.
       --disable-subnet-tags                     Disable automatic subnet tagging
       --discovery-store string                  A public location where we publish OIDC-compatible discovery information under a cluster-specific directory. Enables IRSA in AWS.
       --dns string                              DNS type to use: public, private, none
