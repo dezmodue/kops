@@ -178,7 +178,7 @@ func (c *PodController) updatePodRecords(pod *v1.Pod) string {
 	if specInternal != "" {
 		if pod.Spec.HostNetwork {
 			if pod.Spec.NodeName != "" {
-			klog.V(4).Infof("Pod %q had %s=%s, and was HostNetwork", pod.Name, AnnotationNameDNSInternal, specInternal)
+				klog.V(4).Infof("Pod %q had %s=%s, and was HostNetwork", pod.Name, AnnotationNameDNSInternal, specInternal)
 			}
 		} else {
 			klog.V(4).Infof("Pod %q had %s=%s, but was not HostNetwork", pod.Name, AnnotationNameDNSInternal, specInternal)
