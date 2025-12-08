@@ -37,8 +37,13 @@ func TestPodController(t *testing.T) {
 		},
 		Status: corev1.NodeStatus{
 			Addresses: []corev1.NodeAddress{
+				// Internal IPs allocated to the Pod
 				{Type: corev1.NodeInternalIP, Address: "10.0.0.1"},
 				{Type: corev1.NodeInternalIP, Address: "10.0.0.2"},
+				// The following 2 addresses should be ignored, as they are not associated allocated to the Pod
+				{Type: corev1.NodeInternalIP, Address: "10.0.0.3"},
+				{Type: corev1.NodeInternalIP, Address: "10.0.0.4"},
+				// External IPs
 				{Type: corev1.NodeExternalIP, Address: "2001:db8:0:0:0:ff00:42:8329"},
 				{Type: corev1.NodeExternalIP, Address: "54.100.0.1"},
 			},
