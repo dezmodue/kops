@@ -115,7 +115,8 @@ func TestPodController(t *testing.T) {
 
 	want := map[string][]dns.Record{
 		"kube-system/somepod": {
-			{RecordType: "_alias", FQDN: "a.foo.com.", Value: "node/my-node/external"},
+			{RecordType: "A", FQDN: "a.foo.com.", Value: "2001:db8:0:0:0:ff00:42:8329"},
+			{RecordType: "A", FQDN: "a.foo.com.", Value: "54.100.0.1"},
 			{RecordType: "A", FQDN: "internal.a.foo.com.", Value: "10.0.0.1"},
 			{RecordType: "A", FQDN: "internal.a.foo.com.", Value: "10.0.0.2"},
 			{RecordType: "A", FQDN: "internal.b.foo.com.", Value: "10.0.0.1"},

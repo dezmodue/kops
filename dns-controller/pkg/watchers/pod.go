@@ -142,10 +142,10 @@ func (c *PodController) runWatcher(stopCh <-chan struct{}) {
 	}
 }
 
-// podIPsMatchingNodeInternalIP checks which pod IPs match a NodeInternalIP address on the specified node
-func (c *PodController) podIPsMatchingNodeInternalIP(pod *v1.Pod) []string {
+// podIPsMatchingNodeIP checks which pod IPs match a NodeInternalIP or NodeExternalIP address on the specified node
+func (c *PodController) podIPsMatchingNodeIP(pod *v1.Pod, addressType v1.NodeAddressType) []string {
 	ctx := context.TODO()
-	var internalIPs []string
+	var matchingIPs []string
 	node, err := c.client.CoreV1().Nodes().Get(ctx, pod.Spec.NodeName, metav1.GetOptions{})
 	if err != nil {
 		klog.Warningf("Failed to get node %q: %v", pod.Spec.NodeName, err)
@@ -153,12 +153,12 @@ func (c *PodController) podIPsMatchingNodeInternalIP(pod *v1.Pod) []string {
 	}
 	for _, podIP := range pod.Status.PodIPs {
 		for _, addr := range node.Status.Addresses {
-			if addr.Type == v1.NodeInternalIP && addr.Address == podIP.IP {
-				internalIPs = append(internalIPs, addr.Address)
+			if addr.Type == addressType && addr.Address == podIP.IP {
+				matchingIPs = append(matchingIPs, addr.Address)
 			}
 		}
 	}
-	return internalIPs
+	return matchingIPs
 }
 
 // updatePodRecords will apply the records for the specified pod.  It returns the key that was set.
@@ -167,30 +167,31 @@ func (c *PodController) updatePodRecords(pod *v1.Pod) string {
 
 	specExternal := pod.Annotations[AnnotationNameDNSExternal]
 	if specExternal != "" {
-		var aliases []string
-		if pod.Spec.HostNetwork {
-			if pod.Spec.NodeName != "" {
-				aliases = append(aliases, "node/"+pod.Spec.NodeName+"/external")
-			}
-		} else {
-			klog.V(4).Infof("Pod %q had %s=%s, but was not HostNetwork", pod.Name, AnnotationNameDNSExternal, specExternal)
-		}
 
 		tokens := strings.Split(specExternal, ",")
-		for _, token := range tokens {
-			token = strings.TrimSpace(token)
 
-			fqdn := dns.EnsureDotSuffix(token)
-			for _, alias := range aliases {
-				records = append(records, dns.Record{
-					RecordType: dns.RecordTypeAlias,
-					FQDN:       fqdn,
-					Value:      alias,
-				})
+		if pod.Spec.NodeName != "" && pod.Spec.HostNetwork {
+			podExternalIPs := c.podIPsMatchingNodeIP(pod, v1.NodeExternalIP)
+			if len(podExternalIPs) == 0 {
+				klog.V(4).Infof("Pod %q IPs do not match any NodeExternalIP on node %q", pod.Name, pod.Spec.NodeName)
+			} else {
+				for _, token := range tokens {
+					token = strings.TrimSpace(token)
+					fqdn := dns.EnsureDotSuffix(token)
+					for _, podIP := range podExternalIPs {
+						records = append(records, dns.Record{
+							RecordType: dns.RecordTypeA,
+							FQDN:       fqdn,
+							Value:      podIP,
+						})
+					}
+				}
 			}
+		} else {
+			klog.V(4).Infof("Pod %q had %s=%s, but was not HostNetwork or NodeName not set", pod.Name, AnnotationNameDNSExternal, specExternal)
 		}
 	} else {
-		klog.V(4).Infof("Pod %q did not have %s annotation", pod.Name, AnnotationNameDNSExternal)
+		klog.V(4).Infof("Pod %q did not have %s label", pod.Name, AnnotationNameDNSExternal)
 	}
 
 	specInternal := pod.Annotations[AnnotationNameDNSInternal]
@@ -199,7 +200,7 @@ func (c *PodController) updatePodRecords(pod *v1.Pod) string {
 		tokens := strings.Split(specInternal, ",")
 
 		if pod.Spec.NodeName != "" && pod.Spec.HostNetwork {
-			podInternalIPs := c.podIPsMatchingNodeInternalIP(pod)
+			podInternalIPs := c.podIPsMatchingNodeIP(pod, v1.NodeInternalIP)
 			if len(podInternalIPs) == 0 {
 				klog.V(4).Infof("Pod %q IPs do not match any NodeInternalIP on node %q", pod.Name, pod.Spec.NodeName)
 			} else {
