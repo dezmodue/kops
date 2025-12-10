@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/klog/v2"
 	"k8s.io/kops/pkg/apis/kops"
 	kopsmodel "k8s.io/kops/pkg/apis/kops/model"
 	"k8s.io/kops/pkg/apis/nodeup"
@@ -519,6 +520,12 @@ func (n *nodeUpConfigBuilder) buildWarmPoolImages(ig *kops.InstanceGroup) []stri
 	var unique []string
 	for image := range images {
 		unique = append(unique, image)
+	}
+	if ig.Spec.WarmPoolPullImages != nil {
+		for _, image := range ig.Spec.WarmPoolPullImages {
+			klog.V(8).Infof("Adding warm pool image %q", image)
+			unique = append(unique, image)
+		}
 	}
 	sort.Strings(unique)
 

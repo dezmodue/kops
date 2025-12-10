@@ -4793,6 +4793,7 @@ func autoConvert_v1alpha3_InstanceGroupSpec_To_kops_InstanceGroupSpec(in *Instan
 	} else {
 		out.WarmPool = nil
 	}
+	out.WarmPoolPullImages = in.WarmPoolPullImages
 	if in.Containerd != nil {
 		in, out := &in.Containerd, &out.Containerd
 		*out = new(kops.ContainerdConfig)
@@ -4982,6 +4983,7 @@ func autoConvert_kops_InstanceGroupSpec_To_v1alpha3_InstanceGroupSpec(in *kops.I
 	} else {
 		out.WarmPool = nil
 	}
+	out.WarmPoolPullImages = in.WarmPoolPullImages
 	if in.Containerd != nil {
 		in, out := &in.Containerd, &out.Containerd
 		*out = new(ContainerdConfig)
