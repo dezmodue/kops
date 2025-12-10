@@ -319,6 +319,19 @@ spec:
 You can also specify defaults for all instance groups of type Node or APIServer by setting the `warmPool` field in the cluster spec.
 If warm pools are enabled at the cluster spec level, you can disable them at the instance group level by setting `maxSize: 0`.
 
+## warmPoolPullImages (AWS Only)
+
+{{ kops_feature_table(kops_added_default='1.35') }}
+
+A list of images that `nodeup` will pull during the warming phase. This can help speed up the execution of pods in cases where the images are very large, e.g. inference server container images (NVIDIA triton). 
+
+```yaml
+spec:
+  warmPoolPullImages:
+    - nvcr.io/nvidia/tritonserver:24.10-py3 
+    - nvcr.io/nvidia/gpu-operator:v24.6.2
+```
+
 ### Lifecycle hook
 
 By default AWS does not guarantee that the kOps configuration will run to completion. Nor that the instance will timely shut down after completion if the instance is allowed to run that long. In order to guarantee this, a lifecycle hook is needed.

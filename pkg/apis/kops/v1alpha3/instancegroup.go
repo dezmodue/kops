@@ -145,6 +145,8 @@ type InstanceGroupSpec struct {
 	UpdatePolicy *string `json:"updatePolicy,omitempty"`
 	// WarmPool configures an ASG warm pool for the instance group
 	WarmPool *WarmPoolSpec `json:"warmPool,omitempty"`
+	// WarmPoolPullImages specifies container images to pre-pull during instance pre-initialization (AWS only).
+	WarmPoolPullImages []string `json:"warmPoolPullImages,omitempty"`
 	// Containerd specifies override configuration for instance group
 	Containerd *ContainerdConfig `json:"containerd,omitempty"`
 	// Packages specifies additional packages to be installed.

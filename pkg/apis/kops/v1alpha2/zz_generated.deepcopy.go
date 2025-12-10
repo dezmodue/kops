@@ -2828,6 +2828,11 @@ func (in *InstanceGroupSpec) DeepCopyInto(out *InstanceGroupSpec) {
 		*out = new(WarmPoolSpec)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.WarmPoolPullImages != nil {
+		in, out := &in.WarmPoolPullImages, &out.WarmPoolPullImages
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Containerd != nil {
 		in, out := &in.Containerd, &out.Containerd
 		*out = new(ContainerdConfig)

@@ -1217,6 +1217,12 @@ spec:
                     format: int64
                     type: integer
                 type: object
+              warmPoolPullImages:
+                description: WarmPoolPullImages specifies container images to pre-pull
+                  during instance pre-initialization (AWS only).
+                items:
+                  type: string
+                type: array
               zones:
                 description: |-
                   Zones is the names of the Zones where machines in this instance group should be placed
