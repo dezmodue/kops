@@ -350,6 +350,11 @@ func (c *populateClusterSpec) run(ctx context.Context, clientset simple.Clientse
 		return fmt.Errorf("completed cluster failed validation: %v", errs.ToAggregate())
 	}
 
+	// Register instance group-specific warm pool extra images with the asset builder
+	if err := c.registerInstanceGroupWarmPoolImages(completed); err != nil {
+		return fmt.Errorf("error registering instance group warm pool images: %v", err)
+	}
+
 	c.fullCluster = completed
 	return nil
 }
@@ -386,6 +391,46 @@ func (c *populateClusterSpec) assignSubnets(cluster *kopsapi.Cluster) error {
 			cluster.Spec.Networking.ServiceClusterIPRange = "100.64.0.0/13"
 		}
 		klog.V(2).Infof("Defaulted ServiceClusterIPRange to %v", cluster.Spec.Networking.ServiceClusterIPRange)
+	}
+
+	return nil
+}
+
+// registerInstanceGroupWarmPoolImages registers warm pool extra images from the cluster and all instance groups
+// with the asset builder, ensuring they are included in "kops get assets" output
+func (c *populateClusterSpec) registerInstanceGroupWarmPoolImages(cluster *kopsapi.Cluster) error {
+	if c.assetBuilder == nil || cluster.Spec.CloudProvider.AWS == nil {
+		return nil
+	}
+
+	// Register cluster-level warm pool extra images
+	defaultWarmPool := cluster.Spec.CloudProvider.AWS.WarmPool
+	if defaultWarmPool != nil && defaultWarmPool.WarmPoolExtraImages != nil && len(defaultWarmPool.WarmPoolExtraImages) > 0 {
+		for _, image := range defaultWarmPool.WarmPoolExtraImages {
+			if image != "" {
+				klog.V(2).Infof("Registering cluster-level warm pool extra image: %s", image)
+				c.assetBuilder.RemapImage(image)
+			}
+		}
+	}
+
+	// Loop through all instance groups and register their warm pool extra images
+	for _, ig := range c.InputInstanceGroups {
+		// Resolve the warm pool for this instance group (merges cluster defaults with instance group overrides)
+		resolvedWarmPool := defaultWarmPool.ResolveDefaults(ig)
+		if resolvedWarmPool == nil || !resolvedWarmPool.IsEnabled() {
+			continue
+		}
+
+		// Register each warm pool extra image from this instance group
+		if resolvedWarmPool.WarmPoolExtraImages != nil && len(resolvedWarmPool.WarmPoolExtraImages) > 0 {
+			for _, image := range resolvedWarmPool.WarmPoolExtraImages {
+				if image != "" {
+					klog.V(2).Infof("Registering instance group %q warm pool extra image: %s", ig.Name, image)
+					c.assetBuilder.RemapImage(image)
+				}
+			}
+		}
 	}
 
 	return nil

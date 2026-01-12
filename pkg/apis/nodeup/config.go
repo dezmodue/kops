@@ -61,6 +61,8 @@ type Config struct {
 	DefaultMachineType *string `json:",omitempty"`
 	// EnableLifecycleHook defines whether we need to complete a lifecycle hook.
 	EnableLifecycleHook bool `json:",omitempty"`
+	// LifecycleHookTimeout is the timeout for the ASG lifecycle hook in seconds.
+	LifecycleHookTimeout int32 `json:"lifecycleHookTimeout,omitempty"`
 	// StaticManifests describes generic static manifests
 	// Using this allows us to keep complex logic out of nodeup
 	StaticManifests []*StaticManifest `json:"staticManifests,omitempty"`

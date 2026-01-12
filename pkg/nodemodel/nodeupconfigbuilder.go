@@ -455,7 +455,7 @@ func (n *nodeUpConfigBuilder) BuildConfig(ig *kops.InstanceGroup, wellKnownAddre
 
 	if cluster.Spec.CloudProvider.AWS != nil {
 		if ig.Spec.WarmPool != nil || cluster.Spec.CloudProvider.AWS.WarmPool != nil {
-			config.WarmPoolImages = n.buildWarmPoolImages(ig)
+			config.WarmPoolImages = n.buildWarmPoolImages(ig, cluster.Spec.CloudProvider.AWS)
 		}
 	}
 
@@ -485,7 +485,7 @@ func loadCertificates(keysets map[string]*fi.Keyset, name string, config *nodeup
 }
 
 // buildWarmPoolImages returns a list of container images that should be pre-pulled during instance pre-initialization
-func (n *nodeUpConfigBuilder) buildWarmPoolImages(ig *kops.InstanceGroup) []string {
+func (n *nodeUpConfigBuilder) buildWarmPoolImages(ig *kops.InstanceGroup, awsspec *kops.AWSSpec) []string {
 	if ig == nil || ig.Spec.Role == kops.InstanceGroupRoleControlPlane {
 		return nil
 	}
@@ -519,6 +519,20 @@ func (n *nodeUpConfigBuilder) buildWarmPoolImages(ig *kops.InstanceGroup) []stri
 					images[image.DownloadLocation] = true
 				}
 			}
+		}
+	}
+
+	// Add cluster-level extra images
+	if awsspec.WarmPool != nil && len(awsspec.WarmPool.WarmPoolExtraImages) > 0 {
+		for _, image := range awsspec.WarmPool.WarmPoolExtraImages {
+			images[image] = true
+		}
+	}
+
+	// Add ig-level extra images
+	if ig.Spec.WarmPool != nil && len(ig.Spec.WarmPool.WarmPoolExtraImages) > 0 {
+		for _, image := range ig.Spec.WarmPool.WarmPoolExtraImages {
+			images[image] = true
 		}
 	}
 

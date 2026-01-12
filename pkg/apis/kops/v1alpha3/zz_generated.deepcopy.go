@@ -6043,6 +6043,16 @@ func (in *WarmPoolSpec) DeepCopyInto(out *WarmPoolSpec) {
 		*out = new(int64)
 		**out = **in
 	}
+	if in.LifecycleHookTimeout != nil {
+		in, out := &in.LifecycleHookTimeout, &out.LifecycleHookTimeout
+		*out = new(int32)
+		**out = **in
+	}
+	if in.WarmPoolExtraImages != nil {
+		in, out := &in.WarmPoolExtraImages, &out.WarmPoolExtraImages
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
